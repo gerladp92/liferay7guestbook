@@ -17,6 +17,8 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
+import com.liferay.portal.kernel.servlet.SessionErrors;
+import com.liferay.portal.kernel.servlet.SessionMessages;
 import com.liferay.portal.kernel.util.ParamUtil;
 
 @Component(immediate = true, property = { "com.liferay.portlet.display-category=category.hidden",
@@ -36,10 +38,12 @@ public class GuestbookAdminPortlet extends MVCPortlet {
 
 		try {
 			_guestbookLocalService.addGuestbook(serviceContext.getUserId(), name, serviceContext);
+			SessionMessages.add(request, "guestbookAdded");
+
 		} catch (PortalException pe) {
 
 			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, pe);
-
+			SessionErrors.add(request, pe.getClass().getName());
 			response.setRenderParameter("mvcPath", "/guestbookadminportlet/edit_guestbook.jsp");
 		}
 	}
@@ -53,11 +57,12 @@ public class GuestbookAdminPortlet extends MVCPortlet {
 
 		try {
 			_guestbookLocalService.updateGuestbook(serviceContext.getUserId(), guestbookId, name, serviceContext);
+			SessionMessages.add(request, "guestbookUpdated");
 
 		} catch (PortalException pe) {
 
 			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, pe);
-
+			SessionErrors.add(request, pe.getClass().getName());
 			response.setRenderParameter("mvcPath", "/guestbookadminportlet/edit_guestbook.jsp");
 		}
 	}
@@ -70,9 +75,12 @@ public class GuestbookAdminPortlet extends MVCPortlet {
 
 		try {
 			_guestbookLocalService.deleteGuestbook(guestbookId, serviceContext);
-		} catch (PortalException pe) {
+			SessionMessages.add(request, "guestbookDeleted");
 
+		} catch (PortalException pe) {
 			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, pe);
+
+			SessionErrors.add(request, pe.getClass().getName());
 		}
 	}
 

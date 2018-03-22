@@ -83,6 +83,8 @@ public class GuestbookPortlet extends MVCPortlet {
 	            SessionErrors.add(request, e.getClass().getName());
 	
 	            PortalUtil.copyRequestParameters(request, response);
+	            
+/*	            SessionMessages.add(request, "actionUnsuccessful");*/
 	
 	            response.setRenderParameter(
 	                "mvcPath", "/guestbookwebportlet/edit_entry.jsp");
@@ -107,6 +109,7 @@ public class GuestbookPortlet extends MVCPortlet {
 	
 	            PortalUtil.copyRequestParameters(request, response);
 	
+/*	            SessionMessages.add(request, "actionUnsuccessful");*/
 	            response.setRenderParameter(
 	                "mvcPath", "/guestbookwebportlet/edit_entry.jsp");
 	        }
@@ -127,11 +130,16 @@ public class GuestbookPortlet extends MVCPortlet {
                 "guestbookId", Long.toString(guestbookId));
 
             _entryLocalService.deleteEntry(entryId, serviceContext);
+            SessionMessages.add(request, "entryDeleted");
         }
 
         catch (Exception e) {
             Logger.getLogger(GuestbookPortlet.class.getName()).log(
                 Level.SEVERE, null, e);
+            SessionErrors.add(request, e.getClass().getName());
+            /*           SessionMessages.add(request, "actionUnsuccessful");
+            response.setRenderParameter(
+	                "mvcPath", "/guestbookwebportlet/edit_entry.jsp");*/
         }
 	}
 
