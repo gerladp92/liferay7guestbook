@@ -14,16 +14,26 @@
 
 package com.liferay.docs.guestbook.service.impl;
 
+import java.util.List;
+
+import com.liferay.docs.guestbook.model.Entry;
 import com.liferay.docs.guestbook.service.base.EntryServiceBaseImpl;
+import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.portal.kernel.service.ServiceContext;
 
 /**
  * The implementation of the entry remote service.
  *
  * <p>
- * All custom service methods should be put in this class. Whenever methods are added, rerun ServiceBuilder to copy their definitions into the {@link com.liferay.docs.guestbook.service.EntryService} interface.
+ * All custom service methods should be put in this class. Whenever methods are
+ * added, rerun ServiceBuilder to copy their definitions into the
+ * {@link com.liferay.docs.guestbook.service.EntryService} interface.
  *
  * <p>
- * This is a remote service. Methods of this service are expected to have security checks based on the propagated JAAS credentials because this service can be accessed remotely.
+ * This is a remote service. Methods of this service are expected to have
+ * security checks based on the propagated JAAS credentials because this service
+ * can be accessed remotely.
  * </p>
  *
  * @author liferay
@@ -34,6 +44,40 @@ public class EntryServiceImpl extends EntryServiceBaseImpl {
 	/*
 	 * NOTE FOR DEVELOPERS:
 	 *
-	 * Never reference this class directly. Always use {@link com.liferay.docs.guestbook.service.EntryServiceUtil} to access the entry remote service.
+	 * Never reference this class directly. Always use {@link
+	 * com.liferay.docs.guestbook.service.EntryServiceUtil} to access the entry
+	 * remote service.
 	 */
+
+	public Entry addEntry(long userId, long guestbookId, String name, String email, String message,
+			ServiceContext serviceContext) throws PortalException, SystemException {
+
+		return entryLocalService.addEntry(userId, guestbookId, name, email, message, serviceContext);
+	}
+
+	public Entry deleteEntry(long entryId, ServiceContext serviceContext) throws PortalException, SystemException {
+
+		return entryLocalService.deleteEntry(entryId, serviceContext);
+	}
+
+	public List<Entry> getEntries(long groupId, long guestbookId) throws SystemException {
+
+		return entryLocalService.getEntries(groupId, guestbookId);
+	}
+
+	public List<Entry> getEntries(long groupId, long guestbookId, int start, int end) throws SystemException {
+
+		return entryLocalService.getEntries(groupId, guestbookId, start, end);
+	}
+
+	public int getEntriesCount(long groupId, long guestbookId) throws SystemException {
+
+		return entryLocalService.getEntriesCount(groupId, guestbookId);
+	}
+
+	public Entry updateEntry(long userId, long guestbookId, long entryId, String name, String email, String message,
+			ServiceContext serviceContext) throws PortalException, SystemException {
+
+		return entryLocalService.updateEntry(userId, guestbookId, entryId, name, email, message, serviceContext);
+	}
 }

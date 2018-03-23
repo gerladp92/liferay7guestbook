@@ -14,16 +14,26 @@
 
 package com.liferay.docs.guestbook.service.impl;
 
+import java.util.List;
+
+import com.liferay.docs.guestbook.model.Guestbook;
 import com.liferay.docs.guestbook.service.base.GuestbookServiceBaseImpl;
+import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.portal.kernel.service.ServiceContext;
 
 /**
  * The implementation of the guestbook remote service.
  *
  * <p>
- * All custom service methods should be put in this class. Whenever methods are added, rerun ServiceBuilder to copy their definitions into the {@link com.liferay.docs.guestbook.service.GuestbookService} interface.
+ * All custom service methods should be put in this class. Whenever methods are
+ * added, rerun ServiceBuilder to copy their definitions into the
+ * {@link com.liferay.docs.guestbook.service.GuestbookService} interface.
  *
  * <p>
- * This is a remote service. Methods of this service are expected to have security checks based on the propagated JAAS credentials because this service can be accessed remotely.
+ * This is a remote service. Methods of this service are expected to have
+ * security checks based on the propagated JAAS credentials because this service
+ * can be accessed remotely.
  * </p>
  *
  * @author liferay
@@ -34,6 +44,38 @@ public class GuestbookServiceImpl extends GuestbookServiceBaseImpl {
 	/*
 	 * NOTE FOR DEVELOPERS:
 	 *
-	 * Never reference this class directly. Always use {@link com.liferay.docs.guestbook.service.GuestbookServiceUtil} to access the guestbook remote service.
+	 * Never reference this class directly. Always use {@link
+	 * com.liferay.docs.guestbook.service.GuestbookServiceUtil} to access the
+	 * guestbook remote service.
 	 */
+
+	public Guestbook addGuestbook(long userId, String name, ServiceContext serviceContext)
+			throws SystemException, PortalException {
+
+		return guestbookLocalService.addGuestbook(userId, name, serviceContext);
+	}
+
+	public Guestbook deleteGuestbook(long guestbookId, ServiceContext serviceContext)
+			throws PortalException, SystemException {
+
+		return guestbookLocalService.deleteGuestbook(guestbookId, serviceContext);
+	}
+
+	public List<Guestbook> getGuestbooks(long groupId) throws SystemException {
+		return guestbookLocalService.getGuestbooks(groupId);
+	}
+
+	public List<Guestbook> getGuestbooks(long groupId, int start, int end) throws SystemException {
+		return guestbookLocalService.getGuestbooks(groupId, start, end);
+	}
+
+	public int getGuestbooksCount(long groupId) throws SystemException {
+		return guestbookLocalService.getGuestbooksCount();
+	}
+
+	public Guestbook updateGuestbook(long userId, long guestbookId, String name, ServiceContext serviceContext)
+			throws PortalException, SystemException {
+
+		return guestbookLocalService.updateGuestbook(userId, guestbookId, name, serviceContext);
+	}
 }
