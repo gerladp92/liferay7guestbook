@@ -10,9 +10,9 @@ import javax.portlet.Portlet;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-import com.liferay.docs.guestbook.constants.GuestbookPortletKeys;
 import com.liferay.docs.guestbook.model.Guestbook;
-import com.liferay.docs.guestbook.service.GuestbookLocalService;
+import com.liferay.docs.guestbook.constants.GuestbookPortletKeys;
+import com.liferay.docs.guestbook.service.GuestbookService;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -30,6 +30,7 @@ import com.liferay.portal.kernel.util.ParamUtil;
 		"javax.portlet.security-role-ref=administrator", "javax.portlet.supports.mime-type=text/html",
 		"com.liferay.portlet.add-default-resource=true" }, service = Portlet.class)
 public class GuestbookAdminPortlet extends MVCPortlet {
+
 	public void addGuestbook(ActionRequest request, ActionResponse response) throws PortalException {
 
 		ServiceContext serviceContext = ServiceContextFactory.getInstance(Guestbook.class.getName(), request);
@@ -37,13 +38,14 @@ public class GuestbookAdminPortlet extends MVCPortlet {
 		String name = ParamUtil.getString(request, "name");
 
 		try {
-			_guestbookLocalService.addGuestbook(serviceContext.getUserId(), name, serviceContext);
+			_guestbookService.addGuestbook(serviceContext.getUserId(), name, serviceContext);
 			SessionMessages.add(request, "guestbookAdded");
 
-		} catch (PortalException pe) {
+		} catch (PortalException e) {
 
-			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, pe);
-			SessionErrors.add(request, pe.getClass().getName());
+			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, e);
+			SessionErrors.add(request, e.getClass().getName());
+
 			response.setRenderParameter("mvcPath", "/guestbookadminportlet/edit_guestbook.jsp");
 		}
 	}
@@ -56,13 +58,14 @@ public class GuestbookAdminPortlet extends MVCPortlet {
 		long guestbookId = ParamUtil.getLong(request, "guestbookId");
 
 		try {
-			_guestbookLocalService.updateGuestbook(serviceContext.getUserId(), guestbookId, name, serviceContext);
+			_guestbookService.updateGuestbook(serviceContext.getUserId(), guestbookId, name, serviceContext);
 			SessionMessages.add(request, "guestbookUpdated");
 
-		} catch (PortalException pe) {
+		} catch (PortalException e) {
 
-			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, pe);
-			SessionErrors.add(request, pe.getClass().getName());
+			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, e);
+			SessionErrors.add(request, e.getClass().getName());
+
 			response.setRenderParameter("mvcPath", "/guestbookadminportlet/edit_guestbook.jsp");
 		}
 	}
@@ -74,21 +77,23 @@ public class GuestbookAdminPortlet extends MVCPortlet {
 		long guestbookId = ParamUtil.getLong(request, "guestbookId");
 
 		try {
-			_guestbookLocalService.deleteGuestbook(guestbookId, serviceContext);
+			_guestbookService.deleteGuestbook(guestbookId, serviceContext);
 			SessionMessages.add(request, "guestbookDeleted");
 
-		} catch (PortalException pe) {
-			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, pe);
+		} catch (PortalException e) {
 
-			SessionErrors.add(request, pe.getClass().getName());
+			Logger.getLogger(GuestbookAdminPortlet.class.getName()).log(Level.SEVERE, null, e);
+			SessionErrors.add(request, e.getClass().getName());
+
 		}
 	}
 
-	private GuestbookLocalService _guestbookLocalService;
+	private GuestbookService _guestbookService;
 
 	@Reference(unbind = "-")
-	protected void setGuestbookService(GuestbookLocalService guestbookLocalService) {
-		_guestbookLocalService = guestbookLocalService;
+	protected void setGuestbookService(GuestbookService guestbookService) {
+		_guestbookService = guestbookService;
+
 	}
 
 }
