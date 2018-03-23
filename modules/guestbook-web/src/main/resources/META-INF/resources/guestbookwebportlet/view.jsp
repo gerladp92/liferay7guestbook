@@ -27,7 +27,7 @@ long guestbookId = Long.valueOf((Long) renderRequest.getAttribute("guestbookId")
 <aui:nav cssClass="nav-tabs">
 
     <%
-        List<Guestbook> guestbooks = GuestbookLocalServiceUtil.getGuestbooks(scopeGroupId);
+    	List<Guestbook> guestbooks = GuestbookLocalServiceUtil.getGuestbooks(scopeGroupId, WorkflowConstants.STATUS_APPROVED);
 
             for (int i = 0; i < guestbooks.size(); i++) {
 
@@ -73,11 +73,12 @@ long guestbookId = Long.valueOf((Long) renderRequest.getAttribute("guestbookId")
 	</c:if>
 </aui:button-row>
 
-<liferay-ui:search-container total="<%=EntryLocalServiceUtil.getEntriesCount()%>">
-<liferay-ui:search-container-results
-    results="<%=EntryLocalServiceUtil.getEntries(scopeGroupId.longValue(), 
-    		guestbookId, searchContainer.getStart(), searchContainer.getEnd())%>" />
-
+<liferay-ui:search-container total="<%=EntryLocalServiceUtil.getEntriesCount(scopeGroupId.longValue(),guestbookId, WorkflowConstants.STATUS_APPROVED)%>">
+<liferay-ui:search-container-results results=
+                "<%=EntryLocalServiceUtil.getEntries(
+                scopeGroupId.longValue(), guestbookId, 
+                WorkflowConstants.STATUS_APPROVED, 
+                searchContainer.getStart(), searchContainer.getEnd())%>" />
 <liferay-ui:search-container-row
     className="com.liferay.docs.guestbook.model.Entry" modelVar="entry">
 

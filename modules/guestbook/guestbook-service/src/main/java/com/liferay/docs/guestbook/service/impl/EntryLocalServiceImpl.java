@@ -34,15 +34,21 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.kernel.workflow.WorkflowHandlerRegistryUtil;
 
 /**
  * The implementation of the entry local service.
  *
  * <p>
- * All custom service methods should be put in this class. Whenever methods are added, rerun ServiceBuilder to copy their definitions into the {@link com.liferay.docs.guestbook.service.EntryLocalService} interface.
+ * All custom service methods should be put in this class. Whenever methods are
+ * added, rerun ServiceBuilder to copy their definitions into the
+ * {@link com.liferay.docs.guestbook.service.EntryLocalService} interface.
  *
  * <p>
- * This is a local service. Methods of this service will not have security checks based on the propagated JAAS credentials because this service can only be accessed from within the same VM.
+ * This is a local service. Methods of this service will not have security
+ * checks based on the propagated JAAS credentials because this service can only
+ * be accessed from within the same VM.
  * </p>
  *
  * @author liferay
@@ -52,158 +58,184 @@ import com.liferay.portal.kernel.util.Validator;
 public class EntryLocalServiceImpl extends EntryLocalServiceBaseImpl {
 
 	@Indexable(type = IndexableType.REINDEX)
-	public Entry addEntry(
-	    long userId, long guestbookId, String name, String email,
-	    String message, ServiceContext serviceContext)
-	    throws PortalException {
+	public Entry addEntry(long userId, long guestbookId, String name, String email, String message,
+			ServiceContext serviceContext) throws PortalException {
 
-	    long groupId = serviceContext.getScopeGroupId();
+		long groupId = serviceContext.getScopeGroupId();
 
-	    User user = userLocalService.getUserById(userId);
+		User user = userLocalService.getUserById(userId);
 
-	    Date now = new Date();
+		Date now = new Date();
 
-	    validate(name, email, message);
+		validate(name, email, message);
 
-	    long entryId = counterLocalService.increment();
+		long entryId = counterLocalService.increment();
 
-	    Entry entry = entryPersistence.create(entryId);
+		Entry entry = entryPersistence.create(entryId);
 
-	    entry.setUuid(serviceContext.getUuid());
-	    entry.setUserId(userId);
-	    entry.setGroupId(groupId);
-	    entry.setCompanyId(user.getCompanyId());
-	    entry.setUserName(user.getFullName());
-	    entry.setCreateDate(serviceContext.getCreateDate(now));
-	    entry.setModifiedDate(serviceContext.getModifiedDate(now));
-	    entry.setExpandoBridgeAttributes(serviceContext);
-	    entry.setGuestbookId(guestbookId);
-	    entry.setName(name);
-	    entry.setEmail(email);
-	    entry.setMessage(message);
+		entry.setUuid(serviceContext.getUuid());
+		entry.setUserId(userId);
+		entry.setGroupId(groupId);
+		entry.setCompanyId(user.getCompanyId());
+		entry.setUserName(user.getFullName());
+		entry.setCreateDate(serviceContext.getCreateDate(now));
+		entry.setModifiedDate(serviceContext.getModifiedDate(now));
+		entry.setExpandoBridgeAttributes(serviceContext);
+		entry.setGuestbookId(guestbookId);
+		entry.setName(name);
+		entry.setEmail(email);
+		entry.setMessage(message);
 
-	    entryPersistence.update(entry);
-	    
-	    resourceLocalService.addResources(user.getCompanyId(), groupId, userId,
-	    	    Entry.class.getName(), entryId, false, true, true);
+		entry.setStatus(WorkflowConstants.STATUS_DRAFT);
+		entry.setStatusByUserId(userId);
+		entry.setStatusByUserName(user.getFullName());
+		entry.setStatusDate(serviceContext.getModifiedDate(null));
 
-	    AssetEntry assetEntry = assetEntryLocalService.updateEntry(userId,
-                groupId, entry.getCreateDate(), entry.getModifiedDate(),
-                Entry.class.getName(), entryId, entry.getUuid(), 0,
-                serviceContext.getAssetCategoryIds(),
-                serviceContext.getAssetTagNames(), true, true, null, null, null, null,
-                ContentTypes.TEXT_HTML, entry.getMessage(), null, null, null,
-                null, 0, 0, null);
+		entryPersistence.update(entry);
 
-	    assetLinkLocalService.updateLinks(userId, assetEntry.getEntryId(),
-                serviceContext.getAssetLinkEntryIds(),
-                AssetLinkConstants.TYPE_RELATED);
+		resourceLocalService.addResources(user.getCompanyId(), groupId, userId, Entry.class.getName(), entryId, false,
+				true, true);
 
-	    return entry;
+		AssetEntry assetEntry = assetEntryLocalService.updateEntry(userId, groupId, entry.getCreateDate(),
+				entry.getModifiedDate(), Entry.class.getName(), entryId, entry.getUuid(), 0,
+				serviceContext.getAssetCategoryIds(), serviceContext.getAssetTagNames(), true, true, null, null, null,
+				null, ContentTypes.TEXT_HTML, entry.getMessage(), null, null, null, null, 0, 0, null);
+
+		assetLinkLocalService.updateLinks(userId, assetEntry.getEntryId(), serviceContext.getAssetLinkEntryIds(),
+				AssetLinkConstants.TYPE_RELATED);
+
+		WorkflowHandlerRegistryUtil.startWorkflowInstance(entry.getCompanyId(), entry.getGroupId(), entry.getUserId(),
+				Entry.class.getName(), entry.getPrimaryKey(), entry, serviceContext);
+
+		return entry;
 	}
-	
+
+	public Entry updateStatus(long userId, long guestbookId, long entryId, int status, ServiceContext serviceContext)
+			throws PortalException, SystemException {
+
+		User user = userLocalService.getUser(userId);
+		Entry entry = getEntry(entryId);
+
+		entry.setStatus(status);
+		entry.setStatusByUserId(userId);
+		entry.setStatusByUserName(user.getFullName());
+		entry.setStatusDate(new Date());
+
+		entryPersistence.update(entry);
+
+		if (status == WorkflowConstants.STATUS_APPROVED) {
+
+			assetEntryLocalService.updateVisible(Entry.class.getName(), entryId, true);
+
+		} else {
+
+			assetEntryLocalService.updateVisible(Entry.class.getName(), entryId, false);
+		}
+
+		return entry;
+	}
+
 	@Indexable(type = IndexableType.REINDEX)
-	public Entry updateEntry (
-	    long userId, long guestbookId, long entryId, String name, String email,
-	    String message, ServiceContext serviceContext)
-	    throws PortalException, SystemException {
+	public Entry updateEntry(long userId, long guestbookId, long entryId, String name, String email, String message,
+			ServiceContext serviceContext) throws PortalException, SystemException {
 
-	    Date now = new Date();
+		Date now = new Date();
 
-	    validate(name, email, message);
+		validate(name, email, message);
 
-	    Entry entry = getEntry(entryId);
+		Entry entry = getEntry(entryId);
 
-	    User user = userLocalService.getUserById(userId);
+		User user = userLocalService.getUserById(userId);
 
-	    entry.setUserId(userId);
-	    entry.setUserName(user.getFullName());
-	    entry.setModifiedDate(serviceContext.getModifiedDate(now));
-	    entry.setName(name);
-	    entry.setEmail(email);
-	    entry.setMessage(message);
-	    entry.setExpandoBridgeAttributes(serviceContext);
+		entry.setUserId(userId);
+		entry.setUserName(user.getFullName());
+		entry.setModifiedDate(serviceContext.getModifiedDate(now));
+		entry.setName(name);
+		entry.setEmail(email);
+		entry.setMessage(message);
+		entry.setExpandoBridgeAttributes(serviceContext);
 
-	    entryPersistence.update(entry);
+		entryPersistence.update(entry);
 
-	    resourceLocalService.updateResources(
-	    	      user.getCompanyId(), serviceContext.getScopeGroupId(), 
-	    	      Entry.class.getName(), entryId, serviceContext.getGroupPermissions(),
-	    	      serviceContext.getGuestPermissions());
+		resourceLocalService.updateResources(user.getCompanyId(), serviceContext.getScopeGroupId(),
+				Entry.class.getName(), entryId, serviceContext.getGroupPermissions(),
+				serviceContext.getGuestPermissions());
 
-	      AssetEntry assetEntry = assetEntryLocalService.updateEntry(userId,
-                  serviceContext.getScopeGroupId(),
-                  entry.getCreateDate(), entry.getModifiedDate(),
-                  Entry.class.getName(), entryId, entry.getUuid(),
-                  0, serviceContext.getAssetCategoryIds(),
-                  serviceContext.getAssetTagNames(), true, true,
-                  entry.getCreateDate(), null, null, null,
-                  ContentTypes.TEXT_HTML, entry.getMessage(), null,
-                  null, null, null, 0, 0,
-                  serviceContext.getAssetPriority());
+		AssetEntry assetEntry = assetEntryLocalService.updateEntry(userId, serviceContext.getScopeGroupId(),
+				entry.getCreateDate(), entry.getModifiedDate(), Entry.class.getName(), entryId, entry.getUuid(), 0,
+				serviceContext.getAssetCategoryIds(), serviceContext.getAssetTagNames(), true, true,
+				entry.getCreateDate(), null, null, null, ContentTypes.TEXT_HTML, entry.getMessage(), null, null, null,
+				null, 0, 0, serviceContext.getAssetPriority());
 
-	      assetLinkLocalService.updateLinks(userId, assetEntry.getEntryId(),
-                  serviceContext.getAssetLinkEntryIds(),
-                  AssetLinkConstants.TYPE_RELATED);
-  
-	    return entry;
+		assetLinkLocalService.updateLinks(userId, assetEntry.getEntryId(), serviceContext.getAssetLinkEntryIds(),
+				AssetLinkConstants.TYPE_RELATED);
+
+		return entry;
 	}
-	
+
 	@Indexable(type = IndexableType.DELETE)
-	public Entry deleteEntry (long entryId, ServiceContext serviceContext)
-	    throws PortalException {
+	public Entry deleteEntry(long entryId, ServiceContext serviceContext) throws PortalException {
 
-	    Entry entry = getEntry(entryId);
+		Entry entry = getEntry(entryId);
 
-	    entry = deleteEntry(entryId);
+		entry = deleteEntry(entryId);
 
-	    resourceLocalService.deleteResource(
-	               serviceContext.getCompanyId(), Entry.class.getName(),
-	               ResourceConstants.SCOPE_INDIVIDUAL, entryId);
+		resourceLocalService.deleteResource(serviceContext.getCompanyId(), Entry.class.getName(),
+				ResourceConstants.SCOPE_INDIVIDUAL, entryId);
 
-	    AssetEntry assetEntry = assetEntryLocalService.fetchEntry(
-                Entry.class.getName(), entryId);
+		AssetEntry assetEntry = assetEntryLocalService.fetchEntry(Entry.class.getName(), entryId);
 
-	    assetLinkLocalService.deleteLinks(assetEntry.getEntryId());
+		assetLinkLocalService.deleteLinks(assetEntry.getEntryId());
 
 		assetEntryLocalService.deleteEntry(assetEntry);
 
-	    return entry;
+		workflowInstanceLinkLocalService.deleteWorkflowInstanceLinks(entry.getCompanyId(), entry.getGroupId(),
+				Entry.class.getName(), entry.getEntryId());
+
+		return entry;
 	}
-	
+
 	public List<Entry> getEntries(long groupId, long guestbookId) {
-	    return entryPersistence.findByG_G(groupId, guestbookId);
+		return entryPersistence.findByG_G(groupId, guestbookId);
 	}
 
-	public List<Entry> getEntries(long groupId, long guestbookId, int start, int end)
-	    throws SystemException {
+	public List<Entry> getEntries(long groupId, long guestbookId, int start, int end) throws SystemException {
 
-	    return entryPersistence.findByG_G(groupId, guestbookId, start, end);
+		return entryPersistence.findByG_G(groupId, guestbookId, start, end);
 	}
 
-	public List<Entry> getEntries(
-	    long groupId, long guestbookId, int start, int end, OrderByComparator<Entry> obc) {
+	public List<Entry> getEntries(long groupId, long guestbookId, int start, int end, OrderByComparator<Entry> obc) {
 
-	    return entryPersistence.findByG_G(groupId, guestbookId, start, end, obc);
+		return entryPersistence.findByG_G(groupId, guestbookId, start, end, obc);
+	}
+
+	public List<Entry> getEntries(long groupId, long guestbookId, int status, int start, int end)
+			throws SystemException {
+
+		return entryPersistence.findByG_G_S(groupId, guestbookId, WorkflowConstants.STATUS_APPROVED);
 	}
 
 	public int getEntriesCount(long groupId, long guestbookId) {
-	    return entryPersistence.countByG_G(groupId, guestbookId);
+		return entryPersistence.countByG_G(groupId, guestbookId);
 	}
-	
-	protected void validate(String name, String email, String entry)
-	    throws PortalException {
 
-	    if (Validator.isNull(name)) {
-	        throw new EntryNameException();
-	    }
+	public int getEntriesCount(long groupId, long guestbookId, int status) throws SystemException {
 
-	    if (!Validator.isEmailAddress(email)) {
-	        throw new EntryEmailException();
-	    }
+		return entryPersistence.countByG_G_S(groupId, guestbookId, WorkflowConstants.STATUS_APPROVED);
+	}
 
-	    if (Validator.isNull(entry)) {
-	        throw new EntryMessageException();
-	    }
+	protected void validate(String name, String email, String entry) throws PortalException {
+
+		if (Validator.isNull(name)) {
+			throw new EntryNameException();
+		}
+
+		if (!Validator.isEmailAddress(email)) {
+			throw new EntryEmailException();
+		}
+
+		if (Validator.isNull(entry)) {
+			throw new EntryMessageException();
+		}
 	}
 }
